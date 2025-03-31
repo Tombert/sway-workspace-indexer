@@ -15,30 +15,23 @@ async fn main() -> StdResult<(),  Box<dyn Error>> {
     let v: Value = serde_json::from_str(json_str.as_ref())?;
     let nodes = &v["nodes"];
     if let Value::Array(arr) = nodes {
-        for entry in arr {
-            if let Value::Array(arr2) = &entry["nodes"] {
-                for entry2 in arr2 {
-                    let maybe_number = entry2.get("num")
-                        .and_then(|v| v.as_i64());
-                    if let Value::Array(arr3) = &entry2["nodes"] {
-                        for entry3 in arr3 {
-                            //println!("\n\n\n\n{}",  entry3["name"]);
-                            let maybe_app_name = entry3.get("name");
-                            
-                            let maybe_app_id = entry3.get("app_id");
-                            match (maybe_number, maybe_app_id, maybe_app_name) {
-                                (Some(num), Some(app_id), Some(app_name)) => {
-                                    println!("{} | {} | {}", num, app_id, app_name);
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
-                }
-            } 
-        }
+        arr.iter()
+            .filter_map(|entry| entry.get("nodes")?.as_array())
+            .flat_map(|arr2| 
+                arr2.iter().filter_map(|entry2| {
+                    let num = entry2.get("num")?.as_i64()?;
+                    let arr3 = entry2.get("nodes")?.as_array()?;
+                    Some(arr3.iter().filter_map(move |entry3| {
+                        let app_id = entry3.get("app_id")?;
+                        let con_id = entry3.get("id")?;
+                        let app_name = entry3.get("name")?;
+                        Some((num, app_id, app_name, con_id))
+                    }))
+                }))
+        .flatten()
+            .for_each(|(num, app_id, app_name, con_id)| {
+                println!("{} | {} | {} | {}", num, app_id, app_name, con_id);
+            });
     }
-
-
     Ok(())
 }
