@@ -22,10 +22,13 @@ async fn main() -> StdResult<(),  Box<dyn Error>> {
                         .and_then(|v| v.as_i64());
                     if let Value::Array(arr3) = &entry2["nodes"] {
                         for entry3 in arr3 {
+                            //println!("\n\n\n\n{}",  entry3["name"]);
+                            let maybe_app_name = entry3.get("name");
+                            
                             let maybe_app_id = entry3.get("app_id");
-                            match (maybe_number, maybe_app_id) {
-                                (Some(num), Some(app_id) )=> {
-                                    println!("{} | {}", num, app_id);
+                            match (maybe_number, maybe_app_id, maybe_app_name) {
+                                (Some(num), Some(app_id), Some(app_name)) => {
+                                    println!("{} | {} | {}", num, app_id, app_name);
                                 }
                                 _ => {}
                             }
