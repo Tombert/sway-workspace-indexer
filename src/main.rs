@@ -155,9 +155,9 @@ fn get_apps(v: Value) -> Vec<(String, String, String, String, String)> {
                     let num = entry2.get("num")?.as_i64()?;
                     let arr3 = entry2.get("nodes")?.as_array()?;
                     Some(arr3.iter().filter_map(move |entry3| {
-                        let app_id = entry3.get("app_id")?.as_str()?;
-                        let app_name = entry3.get("name")?.to_string();
-                        Some((num.to_string(), app_id.to_string(), app_name, "".to_string(), "app".to_string()))
+                        let app_id = entry3.get("app_id")?;
+                        let app_name = entry3.get("name")?;
+                        Some((num.to_string(), app_id.to_string(), app_name.to_string(), "".to_string(), "app".to_string()))
                     }))
                 })
             })
@@ -248,7 +248,8 @@ async fn create_workspace(work_num : i64) -> StdResult<(), Box<dyn Error>> {
     Command::new("swaymsg")
         .arg("workspace")
         .arg(work_num.to_string())
-        .output() .await?;
+        .output()
+        .await?;
     Ok(())
 }
 
