@@ -23,11 +23,13 @@ fn parse_pipe_delimited_line(line: &str) -> Vec<String> {
         .collect()
 }
 
+
+const DEBUG_URL : &str = "http://localhost:9222/";
 async fn tab_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send + Sync>> {
     let id = &my_line[3];
     let client = reqwest::Client::new();
 
-    let s = format!("http://localhost:9222/json/activate/{}", id);
+    let s = format!("{}/json/activate/{}", DEBUG_URL, id);
     let resp1 = client.post(s).send();
 
     let resp2 = Command::new("swaymsg")
@@ -170,7 +172,7 @@ fn get_apps(v: Value) -> Vec<(String, String, String, String, String)> {
 
 
 async fn get_all_apps() -> StdResult<(), Box<dyn Error>> {
-    let tabs_future = reqwest::get("http://localhost:9222/json");
+    let tabs_future = reqwest::get(format!("{}/json", DEBUG_URL));
 
     let tmux_future = Command::new("tmux")
         .arg("list-panes")
