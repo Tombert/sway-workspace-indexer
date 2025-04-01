@@ -232,11 +232,19 @@ async fn switch_apps() -> StdResult<(), Box<dyn Error>> {
 #[tokio::main]
 async fn main() -> StdResult<(), Box<dyn Error>> {
     let args = Args::parse();
-    if args.command == "get-apps" {
-        get_all_apps().await
-    } else if args.command == "switch-apps" {
-        switch_apps().await
-    } else {
-        Ok(())
+
+    match args.command.as_str() {
+        "get-apps" => get_all_apps().await?,
+        "switch-apps" => switch_apps().await?,
+        _ => (),
     }
+    Ok(())
+
+    // if args.command == "get-apps" {
+    //     get_all_apps().await
+    // } else if args.command == "switch-apps" {
+    //     switch_apps().await
+    // } else {
+    //     Ok(())
+    // }
 }
