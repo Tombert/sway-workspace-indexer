@@ -8,7 +8,6 @@ use csv::ReaderBuilder;
 use clap::Parser;
 
 
-
 fn parse_pipe_delimited_line(line: &str) -> Vec<String> {
     let sanitized = line.split('|').map(str::trim).collect::<Vec<_>>().join("|");
     let mut rdr = ReaderBuilder::new()
@@ -126,12 +125,12 @@ async fn get_apps() -> StdResult<(),  Box<dyn Error>> {
         .arg("#{session_name}:#{window_index}|#{pane_index}|#{pane_id}|#{pane_current_path}|#{pane_current_command}|#{pane_active}|#{pane_pid}")
         .output();
 
-    let output_future = Command::new("swaymsg")
+    let apps_future = Command::new("swaymsg")
         .arg("-t")
         .arg("get_tree")
         .output();
 
-    let (tabs_resp, output, tmux_resp) = tokio::join!(tabs_future, output_future, tmux_future);
+    let (tabs_resp, apps_resp, tmux_resp) = tokio::join!(tabs_future, apps_future, tmux_future);
     let tmux = tmux_resp?;
     let tmux_str = String::from_utf8_lossy(&tmux.stdout).as_ref().to_string();
 
@@ -158,8 +157,8 @@ async fn get_apps() -> StdResult<(),  Box<dyn Error>> {
     } else {
         Vec::new()
     };
-    let output = output?;
-    let json_str = String::from_utf8_lossy(&output.stdout).as_ref().to_string();
+    let apps = apps_resp?;
+    let json_str = String::from_utf8_lossy(&apps.stdout).as_ref().to_string();
     let v: Value = serde_json::from_str(json_str.as_ref())?;
     let nodes = &v["nodes"];
     let apps = if let Value::Array(arr) = nodes {
