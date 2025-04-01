@@ -1,12 +1,11 @@
 use tokio::process::Command;
 
-use tokio::io::{self, AsyncBufReadExt, BufReader};
-use serde_json::{Result, Value};
-use std::{collections::HashMap, error::Error, future::Future, pin::Pin};
-use std::result::Result as StdResult;
-use csv::ReaderBuilder;
 use clap::Parser;
-
+use csv::ReaderBuilder;
+use serde_json::{Result, Value};
+use std::result::Result as StdResult;
+use std::{collections::HashMap, error::Error, future::Future, pin::Pin};
+use tokio::io::{self, AsyncBufReadExt, BufReader};
 
 fn parse_pipe_delimited_line(line: &str) -> Vec<String> {
     let sanitized = line.split('|').map(str::trim).collect::<Vec<_>>().join("|");
@@ -93,11 +92,6 @@ async fn tmux_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Sen
     Ok(())
 }
 
-
-
-
-
-
 /// My awesome CLI tool
 #[derive(Parser)]
 #[command(name = "sway-app-workspace-index")]
@@ -114,8 +108,68 @@ struct Args {
     verbose: bool,
 }
 
+fn get_tmux(tmux_str : String) -> Vec<(String, String, String, String, String)> {
+    tmux_str
+        .lines()
+        .filter_map(|line| {
+            let sections: Vec<&str> = line.split("|").collect();
+            Some((
+                sections[0].to_string(),
+                "footclient".to_string(),
+                format!("{} {}", sections[3], sections[4]),
+                sections[2].to_string(),
+                "tmux".to_string(),
+            ))
+        })
+        .collect()
 
-async fn get_apps() -> StdResult<(),  Box<dyn Error>> {
+}
+
+
+fn get_tabs(tabs : Value) -> Vec<(String, String, String, String, String)>{
+   if let Value::Array(arr) = tabs {
+        arr.iter()
+            .filter_map(|i| {
+                if i["type"] == "page" {
+                    let id = i.get("id")?.to_string();
+                    let title = i.get("title")?.to_string();
+                    Some((1000.to_string(), "brave-browser".to_string(), title, id, "tab".to_string()))
+                } else {
+                    None
+                }
+            })
+        .collect()
+    } else {
+        Vec::new()
+    }
+}
+
+
+fn get_apps(v: Value) -> Vec<(String, String, String, String, String)> {
+    let nodes = &v["nodes"];
+    if let Value::Array(arr) = nodes {
+        arr.iter()
+            .filter_map(|entry| entry.get("nodes")?.as_array())
+            .flat_map(|arr2| {
+                arr2.iter().filter_map(|entry2| {
+                    let num = entry2.get("num")?.as_i64()?;
+                    let arr3 = entry2.get("nodes")?.as_array()?;
+                    Some(arr3.iter().filter_map(move |entry3| {
+                        let app_id = entry3.get("app_id")?.as_str()?;
+                        let app_name = entry3.get("name")?.to_string();
+                        Some((num.to_string(), app_id.to_string(), app_name, "".to_string(), "app".to_string()))
+                    }))
+                })
+            })
+            .flatten()
+            .collect()
+    } else {
+        Vec::new()
+    }
+}
+
+
+async fn get_all_apps() -> StdResult<(), Box<dyn Error>> {
     let tabs_future = reqwest::get("http://localhost:9222/json");
 
     let tmux_future = Command::new("tmux")
@@ -125,69 +179,37 @@ async fn get_apps() -> StdResult<(),  Box<dyn Error>> {
         .arg("#{session_name}:#{window_index}|#{pane_index}|#{pane_id}|#{pane_current_path}|#{pane_current_command}|#{pane_active}|#{pane_pid}")
         .output();
 
-    let apps_future = Command::new("swaymsg")
-        .arg("-t")
-        .arg("get_tree")
-        .output();
+    let apps_future = Command::new("swaymsg").arg("-t").arg("get_tree").output();
 
     let (tabs_resp, apps_resp, tmux_resp) = tokio::join!(tabs_future, apps_future, tmux_future);
     let tmux = tmux_resp?;
     let tmux_str = String::from_utf8_lossy(&tmux.stdout).as_ref().to_string();
 
-    let tmux_arr : Vec<(String, &str, String, String, &str)> = tmux_str.lines().filter_map(|line| {
-        let sections : Vec<&str>= line.split("|").collect(); 
-        Some((sections[0].to_string(), "footclient", format!("{} {}", sections[3], sections[4]), sections[2].to_string(), "tmux"))
-
-    }).collect();
+    let tmux_arr = get_tmux(tmux_str);
 
     let tabs = match tabs_resp {
         Ok(resp) => resp.json::<Value>().await.unwrap_or(Value::Array(vec![])),
         Err(_) => Value::Array(vec![]),
     };
 
-    let b : Vec<(String, &str, String, String, &str)> = if let Value::Array(arr) = tabs {
-        arr.iter().filter_map(|i| 
-            if  i["type"] == "page" {
-                let id = i.get("id")?.to_string();
-                let title = i.get("title")?.to_string();
-                Some((1000.to_string(), "brave-browser", title ,id , "tab"))
-            } else {
-                None
-            }).collect()
-    } else {
-        Vec::new()
-    };
+    let tabs = get_tabs(tabs);
+
     let apps = apps_resp?;
     let json_str = String::from_utf8_lossy(&apps.stdout).as_ref().to_string();
     let v: Value = serde_json::from_str(json_str.as_ref())?;
-    let nodes = &v["nodes"];
-    let apps = if let Value::Array(arr) = nodes {
-        arr.iter()
-            .filter_map(|entry| entry.get("nodes")?.as_array())
-            .flat_map(|arr2| 
-                arr2.iter().filter_map(|entry2| {
-                    let num = entry2.get("num")?.as_i64()?;
-                    let arr3 = entry2.get("nodes")?.as_array()?;
-                    Some(arr3.iter().filter_map(move |entry3| {
-                        let app_id = entry3.get("app_id")?.as_str()?;
-                        let app_name = entry3.get("name")?.to_string();
-                        Some((num.to_string(), app_id, app_name, "".to_string(), "app"))
-                    }))
-                }))
-        .flatten().collect()
-    } else {
-        Vec::new()
-    };
+    let apps = get_apps(v);
 
-    let full_list = [b, tmux_arr, apps].concat(); 
-    full_list.iter().for_each(|(num, app_id, app_name, id, ttype)|{
-        println!("{} | {} | {} | {} | {}", num, app_id, app_name, id, ttype)
-    });
+    let full_list = [tabs, tmux_arr, apps].concat();
+    full_list
+        .iter()
+        .for_each(|(num, app_id, app_name, id, ttype)| {
+            println!("{} | {} | {} | {} | {}", num, app_id, app_name, id, ttype)
+        });
 
     Ok(())
 }
 
-async fn switch_apps() -> StdResult<(),  Box<dyn Error>> {
+async fn switch_apps() -> StdResult<(), Box<dyn Error>> {
     let map: HashMap<String, HandlerFn> = vec![
         ("tmux".to_string(), make_handler(tmux_handler)),
         ("tab".to_string(), make_handler(tab_handler)),
@@ -202,22 +224,19 @@ async fn switch_apps() -> StdResult<(),  Box<dyn Error>> {
         let default = make_handler(default_handler);
         let handler = map.get(&my_line[4]).unwrap_or(&default);
         let _ = handler(my_line).await;
-        break; 
+        break;
     }
     Ok(())
 }
 
-
 #[tokio::main]
-async fn main() -> StdResult<(),  Box<dyn Error>> {
+async fn main() -> StdResult<(), Box<dyn Error>> {
     let args = Args::parse();
-
     if args.command == "get-apps" {
-        get_apps().await
+        get_all_apps().await
     } else if args.command == "switch-apps" {
         switch_apps().await
     } else {
-
         Ok(())
     }
 }
