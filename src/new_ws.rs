@@ -3,6 +3,8 @@ use serde_json::{Result, Value};
 use std::{collections::HashSet, error::Error};
 use tokio::process::Command;
 
+use crate::types;
+
 async fn create_workspace(work_num : i64) -> StdResult<(), Box<dyn Error>> {
     Command::new("swaymsg")
         .arg("workspace")
@@ -26,7 +28,7 @@ fn workspace_get_value(x : String) -> Result<Value> {
     return Ok(v); 
 }
 
-pub async fn do_new_workspace() -> StdResult<(),  Box<dyn Error>> {
+pub async fn do_new_workspace(_args: types::Args)-> StdResult<(),  Box<dyn Error>> {
     let output = get_workspace_json().await?;
     let v : Value = workspace_get_value(output)?;
 
