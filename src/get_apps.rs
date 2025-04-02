@@ -64,7 +64,11 @@ fn get_apps(v: Value) -> Vec<(String, String, String, String, String)> {
 
 
 pub async fn get_all_apps() -> StdResult<(), Box<dyn Error>> {
-    let tabs_future = reqwest::get(format!("{}/json", switch_them::DEBUG_URL));
+    let url = format!("{}/json", switch_them::DEBUG_URL);
+    let tabs_future = reqwest::get(&url);
+
+    println!("Out URL: {}", url);
+
 
     let tmux_future = Command::new("tmux")
         .arg("list-panes")
@@ -83,8 +87,11 @@ pub async fn get_all_apps() -> StdResult<(), Box<dyn Error>> {
 
     let tabs = match tabs_resp {
         Ok(resp) => resp.json::<Value>().await.unwrap_or(Value::Array(vec![])),
-        Err(_) => Value::Array(vec![]),
+        Err(e) => {println!("Error: {}", e);  Value::Array(vec![])},
     };
+    println!("Fuck {}: " ,tabs);
+
+
 
     let tabs = get_tabs(tabs);
 

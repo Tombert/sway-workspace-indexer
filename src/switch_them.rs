@@ -5,6 +5,8 @@ use tokio::io::{self, AsyncBufReadExt, BufReader};
 
 use std::result::Result as StdResult;
 
+pub const DEBUG_URL : &str = "http://localhost:9222";
+
 type HandlerFn = Box<
     dyn Fn(
             Vec<String>,
@@ -59,7 +61,6 @@ async fn tmux_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Sen
     Ok(())
 }
 
-pub const DEBUG_URL : &str = "http://localhost:9222/";
 
 async fn tab_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send + Sync>> {
     let id = &my_line[3];
