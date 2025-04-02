@@ -86,8 +86,6 @@ pub async fn get_all_apps() -> StdResult<(), Box<dyn Error>> {
         Ok(resp) => resp.json::<Value>().await.unwrap_or(Value::Array(vec![])),
         Err(e) => {println!("Error: {}", e);  Value::Array(vec![])},
     };
-    println!("Fuck {}: " ,tabs);
-
 
 
     let tabs = get_tabs(tabs);
