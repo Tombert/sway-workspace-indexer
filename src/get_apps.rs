@@ -1,17 +1,19 @@
 use crate::switch_them;
+use crate::types;
 use tokio::process::Command;
 use serde_json::Value;
 use std::result::Result as StdResult;
 use std::error::Error;
 
-fn get_tmux(tmux_str : String) -> Vec<(String, String, String, String, String)> {
+fn get_tmux(args: &types::Args, tmux_str : String) -> Vec<(String, String, String, String, String)> {
+    let term = args.terminal.clone().unwrap_or("footclient".to_string());
     tmux_str
         .lines()
         .filter_map(|line| {
             let sections: Vec<&str> = line.split("|").collect();
             Some((
                 sections[0].to_string(),
-                "footclient".to_string(),
+                term.to_string(),
                 format!("{} {}", sections[3], sections[4]),
                 sections[2].to_string(),
                 "tmux".to_string(),
@@ -21,14 +23,15 @@ fn get_tmux(tmux_str : String) -> Vec<(String, String, String, String, String)> 
 }
 
 
-fn get_tabs(tabs : Value) -> Vec<(String, String, String, String, String)>{
+fn get_tabs(args: &types::Args, tabs : Value) -> Vec<(String, String, String, String, String)>{
+    let browser = args.browser.clone().unwrap_or("brave-browser".to_string());
    if let Value::Array(arr) = tabs {
         arr.iter()
             .filter_map(|i| {
                 if i["type"] == "page" {
                     let id = i.get("id")?.to_string();
                     let title = i.get("title")?.to_string();
-                    Some((1000.to_string(), "brave-browser".to_string(), title, id, "tab".to_string()))
+                    Some((1000.to_string(), browser.to_string(), title, id, "tab".to_string()))
                 } else {
                     None
                 }
@@ -39,7 +42,7 @@ fn get_tabs(tabs : Value) -> Vec<(String, String, String, String, String)>{
     }
 }
 
-fn get_apps(v: Value) -> Vec<(String, String, String, String, String)> {
+fn get_apps(_args: types::Args, v: Value) -> Vec<(String, String, String, String, String)> {
     let nodes = &v["nodes"];
     if let Value::Array(arr) = nodes {
         arr.iter()
@@ -63,7 +66,7 @@ fn get_apps(v: Value) -> Vec<(String, String, String, String, String)> {
 }
 
 
-pub async fn get_all_apps() -> StdResult<(), Box<dyn Error>> {
+pub async fn get_all_apps(args : types::Args) -> StdResult<(), Box<dyn Error>> {
     let url = format!("{}/json", switch_them::DEBUG_URL);
     let tabs_future = reqwest::get(&url);
 
@@ -80,7 +83,7 @@ pub async fn get_all_apps() -> StdResult<(), Box<dyn Error>> {
     let tmux = tmux_resp?;
     let tmux_str = String::from_utf8_lossy(&tmux.stdout).as_ref().to_string();
 
-    let tmux_arr = get_tmux(tmux_str);
+    let tmux_arr = get_tmux(&args, tmux_str);
 
     let tabs = match tabs_resp {
         Ok(resp) => resp.json::<Value>().await.unwrap_or(Value::Array(vec![])),
@@ -88,12 +91,12 @@ pub async fn get_all_apps() -> StdResult<(), Box<dyn Error>> {
     };
 
 
-    let tabs = get_tabs(tabs);
+    let tabs = get_tabs(&args, tabs);
 
     let apps = apps_resp?;
     let json_str = String::from_utf8_lossy(&apps.stdout).as_ref().to_string();
     let v: Value = serde_json::from_str(json_str.as_ref())?;
-    let apps = get_apps(v);
+    let apps = get_apps(args, v);
 
     [tabs, tmux_arr, apps]
         .concat()

@@ -63,6 +63,7 @@ async fn tmux_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Sen
 
 
 async fn tab_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send + Sync>> {
+    let browser = &my_line[1];
     let id = &my_line[3];
     let client = reqwest::Client::new();
 
@@ -70,7 +71,7 @@ async fn tab_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send
     let resp1 = client.post(s).send();
 
     let resp2 = Command::new("swaymsg")
-        .arg("[app_id=\"brave-browser\"] focus")
+        .arg(format!("[app_id=\"{}\"] focus", browser))
         .output();
 
     let (_resp1, _resp2) = tokio::join!(resp1, resp2);
