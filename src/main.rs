@@ -12,13 +12,8 @@ use std::error::Error;
 #[command(version = "1.0")]
 #[command(about = "nada")]
 struct Args {
-    /// Some input file
     #[arg(short, long)]
     command: String,
-
-    /// Enable verbose mode
-    #[arg(short, long)]
-    verbose: bool,
 }
 
 
