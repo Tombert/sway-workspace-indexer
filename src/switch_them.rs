@@ -1,13 +1,12 @@
 use crate::types;
-use tokio::process::Command;
-use std::{collections::HashMap, error::Error, future::Future};
 use csv::ReaderBuilder;
+use std::{collections::HashMap, error::Error, future::Future};
 use tokio::io::{self, AsyncBufReadExt, BufReader};
+use tokio::process::Command;
 
 use std::result::Result as StdResult;
 
-pub const DEBUG_URL : &str = "http://localhost:9222";
-
+pub const DEBUG_URL: &str = "http://localhost:9222";
 
 fn parse_pipe_delimited_line(line: &str) -> Vec<String> {
     let sanitized = line.split('|').map(str::trim).collect::<Vec<_>>().join("|");
@@ -33,7 +32,6 @@ where
     Box::new(move |args| Box::pin(f(args)))
 }
 
-
 async fn tmux_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send + Sync>> {
     let id = &my_line[3];
     let tty = &my_line[1];
@@ -53,7 +51,6 @@ async fn tmux_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Sen
 
     Ok(())
 }
-
 
 async fn tab_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send + Sync>> {
     let browser = &my_line[1];
@@ -88,7 +85,7 @@ async fn default_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + 
     Ok(())
 }
 
-pub async fn switch_apps(_args : types::Args ) -> StdResult<(), Box<dyn Error>> {
+pub async fn switch_apps(_args: types::Args) -> StdResult<(), Box<dyn Error>> {
     let map: HashMap<String, types::HandlerFn> = vec![
         ("tmux".to_string(), make_handler(tmux_handler)),
         ("tab".to_string(), make_handler(tab_handler)),

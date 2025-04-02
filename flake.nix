@@ -33,6 +33,7 @@
         devShells.default = pkgs.mkShell {
           buildInputs = [
             rust
+	    pkgs.rustfmt
 	    pkgs.cargo
             pkgs.pkg-config
           ];

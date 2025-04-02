@@ -1,11 +1,11 @@
 use crate::switch_them;
 use crate::types;
-use tokio::process::Command;
 use serde_json::Value;
-use std::result::Result as StdResult;
 use std::error::Error;
+use std::result::Result as StdResult;
+use tokio::process::Command;
 
-fn get_tmux(args: &types::Args, tmux_str : String) -> Vec<(String, String, String, String, String)> {
+fn get_tmux(args: &types::Args, tmux_str: String) -> Vec<(String, String, String, String, String)> {
     let term = args.terminal.clone().unwrap_or("footclient".to_string());
     tmux_str
         .lines()
@@ -22,21 +22,26 @@ fn get_tmux(args: &types::Args, tmux_str : String) -> Vec<(String, String, Strin
         .collect()
 }
 
-
-fn get_tabs(args: &types::Args, tabs : Value) -> Vec<(String, String, String, String, String)>{
+fn get_tabs(args: &types::Args, tabs: Value) -> Vec<(String, String, String, String, String)> {
     let browser = args.browser.clone().unwrap_or("brave-browser".to_string());
-   if let Value::Array(arr) = tabs {
+    if let Value::Array(arr) = tabs {
         arr.iter()
             .filter_map(|i| {
                 if i["type"] == "page" {
                     let id = i.get("id")?.to_string();
                     let title = i.get("title")?.to_string();
-                    Some((1000.to_string(), browser.to_string(), title, id, "tab".to_string()))
+                    Some((
+                        1000.to_string(),
+                        browser.to_string(),
+                        title,
+                        id,
+                        "tab".to_string(),
+                    ))
                 } else {
                     None
                 }
             })
-        .collect()
+            .collect()
     } else {
         Vec::new()
     }
@@ -54,7 +59,13 @@ fn get_apps(_args: types::Args, v: Value) -> Vec<(String, String, String, String
                     Some(arr3.iter().filter_map(move |entry3| {
                         let app_id = entry3.get("app_id")?;
                         let app_name = entry3.get("name")?;
-                        Some((num.to_string(), app_id.to_string(), app_name.to_string(), "".to_string(), "app".to_string()))
+                        Some((
+                            num.to_string(),
+                            app_id.to_string(),
+                            app_name.to_string(),
+                            "".to_string(),
+                            "app".to_string(),
+                        ))
                     }))
                 })
             })
@@ -65,8 +76,7 @@ fn get_apps(_args: types::Args, v: Value) -> Vec<(String, String, String, String
     }
 }
 
-
-pub async fn get_all_apps(args : types::Args) -> StdResult<(), Box<dyn Error>> {
+pub async fn get_all_apps(args: types::Args) -> StdResult<(), Box<dyn Error>> {
     let url = format!("{}/json", switch_them::DEBUG_URL);
     let tabs_future = reqwest::get(&url);
 
@@ -90,7 +100,6 @@ pub async fn get_all_apps(args : types::Args) -> StdResult<(), Box<dyn Error>> {
         Err(_e) => Value::Array(vec![]),
     };
 
-
     let tabs = get_tabs(&args, tabs);
 
     let apps = apps_resp?;
@@ -100,10 +109,10 @@ pub async fn get_all_apps(args : types::Args) -> StdResult<(), Box<dyn Error>> {
 
     [tabs, tmux_arr, apps]
         .concat()
-            .iter()
-            .for_each(|(num, app_id, app_name, id, ttype)| {
-                println!("{} | {} | {} | {} | {}", num, app_id, app_name, id, ttype)
-            });
+        .iter()
+        .for_each(|(num, app_id, app_name, id, ttype)| {
+            println!("{} | {} | {} | {} | {}", num, app_id, app_name, id, ttype)
+        });
 
     Ok(())
 }

@@ -1,5 +1,5 @@
-use std::{ error::Error, future::Future, pin::Pin};
 use std::result::Result as StdResult;
+use std::{error::Error, future::Future, pin::Pin};
 
 use clap::Parser;
 
@@ -19,8 +19,6 @@ pub struct Args {
     pub terminal: Option<String>,
 }
 
-
-
 pub type HandlerFn = Box<
     dyn Fn(
             Vec<String>,
@@ -29,4 +27,3 @@ pub type HandlerFn = Box<
         + Send
         + Sync,
 >;
-

@@ -1,12 +1,10 @@
+mod get_apps;
 mod new_ws;
 mod switch_them;
-mod get_apps;
 use clap::Parser;
-use std::result::Result as StdResult;
 use std::error::Error;
+use std::result::Result as StdResult;
 mod types;
-
-
 
 #[tokio::main]
 async fn main() -> StdResult<(), Box<dyn Error>> {
