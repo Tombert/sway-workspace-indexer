@@ -67,9 +67,6 @@ pub async fn get_all_apps() -> StdResult<(), Box<dyn Error>> {
     let url = format!("{}/json", switch_them::DEBUG_URL);
     let tabs_future = reqwest::get(&url);
 
-    println!("Out URL: {}", url);
-
-
     let tmux_future = Command::new("tmux")
         .arg("list-panes")
         .arg("-a")
