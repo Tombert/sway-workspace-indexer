@@ -1,3 +1,5 @@
+use std::{ error::Error, future::Future, pin::Pin};
+use std::result::Result as StdResult;
 
 use clap::Parser;
 
@@ -16,4 +18,15 @@ pub struct Args {
     #[arg(short, long)]
     pub terminal: Option<String>,
 }
+
+
+
+pub type HandlerFn = Box<
+    dyn Fn(
+            Vec<String>,
+        )
+            -> Pin<Box<dyn Future<Output = StdResult<(), Box<dyn Error + Send + Sync>>> + Send>>
+        + Send
+        + Sync,
+>;
 

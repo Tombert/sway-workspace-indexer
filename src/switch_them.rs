@@ -1,5 +1,6 @@
+use crate::types;
 use tokio::process::Command;
-use std::{collections::HashMap, error::Error, future::Future, pin::Pin};
+use std::{collections::HashMap, error::Error, future::Future};
 use csv::ReaderBuilder;
 use tokio::io::{self, AsyncBufReadExt, BufReader};
 
@@ -7,14 +8,6 @@ use std::result::Result as StdResult;
 
 pub const DEBUG_URL : &str = "http://localhost:9222";
 
-type HandlerFn = Box<
-    dyn Fn(
-            Vec<String>,
-        )
-            -> Pin<Box<dyn Future<Output = StdResult<(), Box<dyn Error + Send + Sync>>> + Send>>
-        + Send
-        + Sync,
->;
 
 fn parse_pipe_delimited_line(line: &str) -> Vec<String> {
     let sanitized = line.split('|').map(str::trim).collect::<Vec<_>>().join("|");
@@ -32,7 +25,7 @@ fn parse_pipe_delimited_line(line: &str) -> Vec<String> {
         .collect()
 }
 
-fn make_handler<F, Fut>(f: F) -> HandlerFn
+fn make_handler<F, Fut>(f: F) -> types::HandlerFn
 where
     F: Fn(Vec<String>) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = StdResult<(), Box<dyn Error + Send + Sync>>> + Send + 'static,
@@ -96,7 +89,7 @@ async fn default_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + 
 }
 
 pub async fn switch_apps() -> StdResult<(), Box<dyn Error>> {
-    let map: HashMap<String, HandlerFn> = vec![
+    let map: HashMap<String, types::HandlerFn> = vec![
         ("tmux".to_string(), make_handler(tmux_handler)),
         ("tab".to_string(), make_handler(tab_handler)),
     ]
