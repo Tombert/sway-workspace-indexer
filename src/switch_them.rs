@@ -88,7 +88,7 @@ async fn default_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + 
     Ok(())
 }
 
-pub async fn switch_apps() -> StdResult<(), Box<dyn Error>> {
+pub async fn switch_apps(_args : types::Args ) -> StdResult<(), Box<dyn Error>> {
     let map: HashMap<String, types::HandlerFn> = vec![
         ("tmux".to_string(), make_handler(tmux_handler)),
         ("tab".to_string(), make_handler(tab_handler)),
