@@ -47,6 +47,9 @@ fn get_tabs(args: &types::Args, tabs: Value) -> Vec<(String, String, String, Str
     }
 }
 
+
+
+
 fn get_apps(_args: types::Args, v: Value) -> Vec<(String, String, String, String, String)> {
     let nodes = &v["nodes"];
     if let Value::Array(arr) = nodes {
@@ -76,6 +79,20 @@ fn get_apps(_args: types::Args, v: Value) -> Vec<(String, String, String, String
     }
 }
 
+
+pub fn get_systemd (_args : &types::Args, services : Value) -> Vec<(String, String, String, String, String)>{
+    if let Value::Array(arr) = services {
+        arr.iter().map(|service| {
+
+            ("1010".to_string(), service["unit"].to_string(), service["description"].to_string(), "".to_string(), "systemd".to_string() )
+
+        }).collect()
+} else {
+   Vec::new()
+    }
+}
+
+
 pub async fn get_all_apps(args: types::Args) -> StdResult<(), Box<dyn Error>> {
     let url = format!("{}/json", switch_them::DEBUG_URL);
     let tabs_future = reqwest::get(&url);
@@ -87,9 +104,27 @@ pub async fn get_all_apps(args: types::Args) -> StdResult<(), Box<dyn Error>> {
         .arg("#{session_name}:#{window_index}|#{pane_index}|#{pane_id}|#{pane_current_path}|#{pane_current_command}|#{pane_active}|#{pane_pid}")
         .output();
 
+    let systemd_services_future = Command::new("systemctl")
+        .arg("list-units")
+        .arg("--type=service")
+        .arg("--all")
+        .arg("--output=json")
+        .output();
+
     let apps_future = Command::new("swaymsg").arg("-t").arg("get_tree").output();
 
-    let (tabs_resp, apps_resp, tmux_resp) = tokio::join!(tabs_future, apps_future, tmux_future);
+    let (tabs_resp, apps_resp, tmux_resp, systemd_services) = tokio::join!(tabs_future, apps_future, tmux_future, systemd_services_future);
+
+
+    let systemd_services = systemd_services?; 
+    let systemd = String::from_utf8_lossy(&systemd_services.stdout).as_ref().to_string();
+    let systemd = serde_json::from_str(systemd.as_ref())?;
+    let systemd = get_systemd(&args, systemd);
+
+
+
+
+
     let tmux = tmux_resp?;
     let tmux_str = String::from_utf8_lossy(&tmux.stdout).as_ref().to_string();
 
@@ -107,7 +142,7 @@ pub async fn get_all_apps(args: types::Args) -> StdResult<(), Box<dyn Error>> {
     let v: Value = serde_json::from_str(json_str.as_ref())?;
     let apps = get_apps(args, v);
 
-    [tabs, tmux_arr, apps]
+    [tabs, tmux_arr, apps, systemd]
         .concat()
         .iter()
         .for_each(|(num, app_id, app_name, id, ttype)| {

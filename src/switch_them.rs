@@ -52,6 +52,22 @@ async fn tmux_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Sen
     Ok(())
 }
 
+
+
+async fn systemd_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send + Sync>> {
+    let id = &my_line[1];
+
+    let resp2 = Command::new("pkexec")
+        .arg("systemctl")
+        .arg("restart")
+        .arg(id)
+        .output()
+        .await?;
+    Ok(())
+
+
+}
+
 async fn tab_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send + Sync>> {
     let browser = &my_line[1];
     let id = &my_line[3];
@@ -89,6 +105,7 @@ pub async fn switch_apps(_args: types::Args) -> StdResult<(), Box<dyn Error>> {
     let map: HashMap<String, types::HandlerFn> = vec![
         ("tmux".to_string(), make_handler(tmux_handler)),
         ("tab".to_string(), make_handler(tab_handler)),
+        ("systemd".to_string(), make_handler(systemd_handler)),
     ]
     .into_iter()
     .collect();
