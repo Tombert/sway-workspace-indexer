@@ -52,8 +52,6 @@ async fn tmux_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Sen
     Ok(())
 }
 
-
-
 async fn systemd_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send + Sync>> {
     let id = &my_line[1];
 
@@ -64,8 +62,6 @@ async fn systemd_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + 
         .output()
         .await?;
     Ok(())
-
-
 }
 
 async fn tab_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + Send + Sync>> {
