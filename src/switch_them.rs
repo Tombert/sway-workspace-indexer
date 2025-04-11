@@ -88,7 +88,7 @@ async fn default_handler(my_line: Vec<String>) -> StdResult<(), Box<dyn Error + 
         .then(|| format!(" title=\"{}\"", title))
         .unwrap_or_default();
 
-    let arg_str = format!("[app_id=\"{}\"{}] focus", app, real_title);
+    let arg_str = format!("[app_id=\"{}\"] focus", app);
     let _ = Command::new("swaymsg")
         .arg(arg_str)
         //.arg("focus'")
